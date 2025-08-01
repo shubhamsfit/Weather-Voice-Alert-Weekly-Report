@@ -5,12 +5,12 @@
   <title>Weather Voice Alert & Weekly Report</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* Day mode */
+    /* Day mode - restored to brighter attractive colors */
     body {
       font-family: Arial, sans-serif;
       padding: 2rem;
-      background: #e0f7fa;
-      color: #003344;
+      background: #f0f8ff; /* light sky blue */
+      color: #003344; /* dark teal */
       text-align: center;
       transition: background-color 0.5s ease, color 0.5s ease;
       margin: 0;
@@ -25,7 +25,7 @@
     #status {
       margin: 1rem 0;
       font-size: 1.2rem;
-      color: #004d40;
+      color: #333;
       min-height: 1.4em;
     }
     #current-weather, #weekly-forecast {
@@ -34,12 +34,12 @@
       max-width: 400px;
     }
     .card {
-      background: #b2ebf2;
+      background: #d9ecff; /* light blue */
       margin: 0.5rem auto;
       padding: 1rem;
       border-radius: 10px;
-      box-shadow: 0 0 12px rgba(0, 77, 64, 0.3);
-      color: #004d40;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+      color: #003344;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -55,13 +55,14 @@
       display: flex;
       align-items: center;
       gap: 0.4rem;
+      justify-content: center;
     }
     button {
       margin-top: 1rem;
       padding: 0.6rem 1.2rem;
       border-radius: 6px;
       border: none;
-      background-color: #00796b;
+      background-color: #00796b; /* teal */
       color: white;
       font-size: 1rem;
       cursor: pointer;
@@ -71,12 +72,10 @@
     button:hover {
       background-color: #004d40;
     }
-
     lottie-player {
       width: 80px;
       height: 80px;
     }
-
     /* Night mode */
     body.night {
       background: #121212;
@@ -107,7 +106,6 @@
       border-color: #fff;
       color: #fff;
     }
-
     /* Responsive */
     @media (max-width: 450px) {
       body {
@@ -193,7 +191,6 @@
           audio.src = src;
           audio.volume = 0.3;
           audio.play().catch(e => {
-            // Autoplay blocked
             console.log("Audio play blocked:", e);
             soundBtn.innerText = "🔈 Enable Sound";
             soundEnabled = false;
@@ -224,7 +221,6 @@
       } else {
         soundEnabled = true;
         soundBtn.innerText = "🔊 Disable Sound";
-        // Try to play current weather sound immediately if data is loaded
         if (currentCondition) setMusic(currentCondition);
       }
     });
@@ -333,7 +329,6 @@
       statusDiv.innerText = "❌ Geolocation is not supported by this browser.";
     }
 
-    // Initialize theme button text
     updateThemeUI();
   </script>
 </body>
