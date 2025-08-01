@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Weather Voice Alert & Weekly Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2rem; background: #f0f8ff; text-align: center; }
+    #status { margin: 1rem 0; font-size: 1.2rem; color: #333; }
+    #current-weather, #weekly-forecast { margin-top: 1.5rem; }
+    .day-forecast {
+      background: #d9ecff;
+      margin: 0.5rem auto;
+      padding: 0.7rem;
+      border-radius: 8px;
+      max-width: 320px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    .date { font-weight: bold; margin-bottom: 0.3rem; }
+    .condition { font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>⛈️ Weather Voice Alert & Weekly Report</h1>
+  <p>This page notifies about bad weather alerts and shows current + weekly weather.</p>
+  <div id="status">Loading weather data...</div>
+
+  <div id="current-weather"></div>
+  <div id="weekly-forecast"></div>
+
+  <script>
+  const API_KEY = '3ed08d684f2544ada8270823250108'; // Replace with your WeatherAPI.com key
+  const statusDiv = document.getElementById('status');
+  const currentDiv = document.getElementById('current-weather');
+  const weeklyDiv = document.getElementById('weekly-forecast');
+
+  function getWeatherAndAlert(lat, lon) {
+    const url = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${lat},${lon}&days=7&alerts=yes`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          statusDiv.innerText = 'API error: ' + data.error.message;
+          return;
+        }
+
+        // Show current weather
+        const current = data.current;
+        currentDiv.innerHTML = `
+          <h2>Current Weather (${data.location.name}, ${data.location.region})</h2>
+          <p><strong>Temp:</strong> ${current.temp_c}°C (${current.temp_f}°F)</p>
+          <p><strong>Condition:</strong> ${current.condition.text}</p>
+          <p><img src="https:${current.condition.icon}" alt="${current.condition.text}" /></p>
+        `;
+
+        // Weekly forecast
+        weeklyDiv.innerHTML = '<h2>7-Day Forecast</h2>';
+        data.forecast.forecastday.forEach(day => {
+          const dateStr = new Date(day.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+          const html = `
+            <div class="day-forecast">
+              <div class="date">${dateStr}</div>
+              <div class="condition">${day.day.condition.text} <img src="https:${day.day.condition.icon}" alt="${day.day.condition.text}" /></div>
+              <div>Min: ${day.day.mintemp_c}°C | Max: ${day.day.maxtemp_c}°C</div>
+            </div>
+          `;
+          weeklyDiv.insertAdjacentHTML('beforeend', html);
+        });
+
+        // Weather alerts
+        if (data.alerts && data.alerts.alert.length > 0) {
+          const severeAlerts = data.alerts.alert.filter(alert =>
+            /rain|storm|hail|thunder|snow|flood/i.test(alert.event)
+          );
+
+          if (severeAlerts.length > 0) {
+            const msg = severeAlerts[0].headline + '. Please stay safe.';
+            speakAlert(msg);
+            statusDiv.innerText = `⚠️ Alert: ${msg}`;
+            return;
+          }
+        }
+
+        statusDiv.innerText = '✅ No severe weather alerts currently.';
+      })
+      .catch(err => {
+        statusDiv.innerText = 'Fetch error: ' + err.message;
+        console.error(err);
+      });
+  }
+
+  function speakAlert(message) {
+    const utter = new SpeechSynthesisUtterance(message);
+    utter.lang = 'en-US';
+    speechSynthesis.speak(utter);
+  }
+
+  // Ask browser for GPS location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        statusDiv.innerText = "📍 Location detected. Fetching weather data...";
+        getWeatherAndAlert(lat, lon);
+        setInterval(() => getWeatherAndAlert(lat, lon), 5 * 60 * 1000); // every 5 mins
+      },
+      err => {
+        statusDiv.innerText = "❌ Location error: " + err.message;
+      }
+    );
+  } else {
+    statusDiv.innerText = "❌ Geolocation is not supported by this browser.";
+  }
+</script>
+
+</body>
+</html>
