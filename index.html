@@ -8,9 +8,9 @@
   <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
   <style>
     :root {
-      --bg-color-day: linear-gradient(135deg, #4e54c8, #8f94fb);
-      --text-color-day: #fff;
-      --card-bg-day: rgba(255, 255, 255, 0.12);
+      --bg-color-day: #ffffff;
+      --text-color-day: #333333;
+      --card-bg-day: rgba(0, 0, 0, 0.05);
       --bg-color-night: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       --text-color-night: #e0f7fa;
       --card-bg-night: rgba(255, 255, 255, 0.08);
@@ -64,7 +64,7 @@
       padding: 1rem;
       width: 90%;
       max-width: 350px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
       transition: transform 0.3s, background 0.5s ease;
     }
 
@@ -89,24 +89,29 @@
     .theme-toggle, #music-toggle {
       position: absolute;
       right: 1rem;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.05);
       border: none;
       border-radius: 20px;
       padding: 0.5rem 1rem;
       cursor: pointer;
       font-size: 0.9rem;
-      color: #fff;
+      color: #333;
       backdrop-filter: blur(10px);
       transition: background 0.3s ease;
       z-index: 100;
     }
 
     .theme-toggle:hover, #music-toggle:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(0, 0, 0, 0.1);
     }
 
     .theme-toggle { top: 1rem; }
     #music-toggle { top: 3.5rem; }
+
+    body.night .theme-toggle, body.night #music-toggle {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
 
     @keyframes fadeInDown {
       from { opacity: 0; transform: translateY(-20px); }
@@ -129,8 +134,8 @@
   </style>
 </head>
 <body>
-  <button class="theme-toggle" onclick="toggleTheme()">🌙 Night Mode</button>
-  <button id="music-toggle">🔈 Enable Sound</button>
+  <button class="theme-toggle" onclick="toggleTheme(this)">🌙 Night Mode</button>
+  <button id="music-toggle" onclick="toggleMusic()">🔈 Enable Sound</button>
 
   <h1>🌤️ Weather Voice Alert & Weekly Forecast</h1>
   <p>This page notifies you of severe weather and shows a 7-day forecast with animated icons.</p>
@@ -142,13 +147,11 @@
   <audio id="bg-music" loop></audio>
 
   <script>
-    const API_KEY = '3ed08d684f2544ada8270823250108'; // ← Replace this
-
+    const API_KEY = '3ed08d684f2544ada8270823250108'; // Replace with your key
     const statusDiv = document.getElementById('status');
     const currentDiv = document.getElementById('current-weather');
     const weeklyDiv = document.getElementById('weekly-forecast');
     const audio = document.getElementById("bg-music");
-    const musicBtn = document.getElementById("music-toggle");
     let musicEnabled = false;
 
     const weatherSounds = {
@@ -188,15 +191,12 @@
       if (musicEnabled) audio.play().catch(() => {});
     }
 
-    musicBtn.addEventListener("click", () => {
+    function toggleMusic() {
       musicEnabled = !musicEnabled;
-      musicBtn.innerText = musicEnabled ? "🔇 Mute Sound" : "🔈 Enable Sound";
-      if (musicEnabled) {
-        audio.play().catch(() => {});
-      } else {
-        audio.pause();
-      }
-    });
+      document.getElementById("music-toggle").innerText = musicEnabled ? "🔇 Mute Sound" : "🔈 Enable Sound";
+      if (musicEnabled) audio.play().catch(() => {});
+      else audio.pause();
+    }
 
     function speakAlert(message) {
       const utter = new SpeechSynthesisUtterance(message);
@@ -254,12 +254,13 @@
         })
         .catch(err => {
           statusDiv.innerText = 'Fetch error: ' + err.message;
-          console.error(err);
         });
     }
 
-    function toggleTheme() {
+    function toggleTheme(btn) {
       document.body.classList.toggle("night");
+      const isNight = document.body.classList.contains("night");
+      btn.innerText = isNight ? "☀️ Day Mode" : "🌙 Night Mode";
     }
 
     if (navigator.geolocation) {
@@ -269,7 +270,7 @@
           const lon = pos.coords.longitude;
           statusDiv.innerText = "📍 Location detected. Fetching weather data...";
           getWeatherAndAlert(lat, lon);
-          setInterval(() => getWeatherAndAlert(lat, lon), 5 * 60 * 1000); // every 5 mins
+          setInterval(() => getWeatherAndAlert(lat, lon), 5 * 60 * 1000);
         },
         err => {
           statusDiv.innerText = "❌ Location error: " + err.message;
