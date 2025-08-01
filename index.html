@@ -7,13 +7,29 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
   <style>
+    :root {
+      --bg-color-day: linear-gradient(135deg, #4e54c8, #8f94fb);
+      --text-color-day: #fff;
+      --card-bg-day: rgba(255, 255, 255, 0.12);
+      --bg-color-night: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      --text-color-night: #e0f7fa;
+      --card-bg-night: rgba(255, 255, 255, 0.08);
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
       font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #4e54c8, #8f94fb);
-      color: #fff;
+      background: var(--bg-color-day);
+      color: var(--text-color-day);
       padding: 2rem;
       text-align: center;
+      transition: background 0.5s ease, color 0.5s ease;
+    }
+
+    body.night {
+      background: var(--bg-color-night);
+      color: var(--text-color-night);
     }
 
     h1 {
@@ -31,7 +47,6 @@
     #status {
       font-size: 1.1rem;
       margin-bottom: 2rem;
-      color: #ffebc6;
       animation: pulse 2s infinite;
     }
 
@@ -43,14 +58,18 @@
     }
 
     .card {
-      background: rgba(255, 255, 255, 0.12);
+      background: var(--card-bg-day);
       backdrop-filter: blur(10px);
       border-radius: 15px;
       padding: 1rem;
       width: 90%;
       max-width: 350px;
       box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-      transition: transform 0.3s;
+      transition: transform 0.3s, background 0.5s ease;
+    }
+
+    body.night .card {
+      background: var(--card-bg-night);
     }
 
     .card:hover {
@@ -67,9 +86,27 @@
       margin: 0.5rem 0;
     }
 
-    lottie-player {
-      margin-top: 0.5rem;
+    .theme-toggle, #music-toggle {
+      position: absolute;
+      right: 1rem;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 20px;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #fff;
+      backdrop-filter: blur(10px);
+      transition: background 0.3s ease;
+      z-index: 100;
     }
+
+    .theme-toggle:hover, #music-toggle:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .theme-toggle { top: 1rem; }
+    #music-toggle { top: 3.5rem; }
 
     @keyframes fadeInDown {
       from { opacity: 0; transform: translateY(-20px); }
@@ -81,6 +118,10 @@
       50% { opacity: 0.6; }
     }
 
+    lottie-player {
+      margin-top: 0.5rem;
+    }
+
     @media (max-width: 600px) {
       h1 { font-size: 1.6rem; }
       .card { width: 95%; }
@@ -88,6 +129,9 @@
   </style>
 </head>
 <body>
+  <button class="theme-toggle" onclick="toggleTheme()">🌙 Night Mode</button>
+  <button id="music-toggle">🔈 Enable Sound</button>
+
   <h1>🌤️ Weather Voice Alert & Weekly Forecast</h1>
   <p>This page notifies you of severe weather and shows a 7-day forecast with animated icons.</p>
   <div id="status">Loading weather data...</div>
@@ -95,11 +139,24 @@
   <div id="current-weather"></div>
   <div id="weekly-forecast"></div>
 
+  <audio id="bg-music" loop></audio>
+
   <script>
-    const API_KEY = '3ed08d684f2544ada8270823250108'; // Replace with your WeatherAPI key
+    const API_KEY = '3ed08d684f2544ada8270823250108'; // ← Replace this
+
     const statusDiv = document.getElementById('status');
     const currentDiv = document.getElementById('current-weather');
     const weeklyDiv = document.getElementById('weekly-forecast');
+    const audio = document.getElementById("bg-music");
+    const musicBtn = document.getElementById("music-toggle");
+    let musicEnabled = false;
+
+    const weatherSounds = {
+      rain: "https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2391.mp3",
+      clear: "https://assets.mixkit.co/sfx/preview/mixkit-birds-in-forest-ambience-2581.mp3",
+      thunder: "https://assets.mixkit.co/sfx/preview/mixkit-thunder-strike-2415.mp3",
+      cloudy: "https://assets.mixkit.co/sfx/preview/mixkit-light-wind-loop-1123.mp3"
+    };
 
     const lottieIcons = {
       Clear: "https://assets9.lottiefiles.com/packages/lf20_pz4b7a6d.json",
@@ -120,6 +177,33 @@
       return lottieIcons.Default;
     }
 
+    function setMusic(conditionText) {
+      const cond = conditionText.toLowerCase();
+      let src = weatherSounds.clear;
+      if (cond.includes("rain")) src = weatherSounds.rain;
+      else if (cond.includes("thunder")) src = weatherSounds.thunder;
+      else if (cond.includes("cloud")) src = weatherSounds.cloudy;
+      else if (cond.includes("clear") || cond.includes("sun")) src = weatherSounds.clear;
+      audio.src = src;
+      if (musicEnabled) audio.play().catch(() => {});
+    }
+
+    musicBtn.addEventListener("click", () => {
+      musicEnabled = !musicEnabled;
+      musicBtn.innerText = musicEnabled ? "🔇 Mute Sound" : "🔈 Enable Sound";
+      if (musicEnabled) {
+        audio.play().catch(() => {});
+      } else {
+        audio.pause();
+      }
+    });
+
+    function speakAlert(message) {
+      const utter = new SpeechSynthesisUtterance(message);
+      utter.lang = 'en-US';
+      speechSynthesis.speak(utter);
+    }
+
     function getWeatherAndAlert(lat, lon) {
       const url = `https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${lat},${lon}&days=7&alerts=yes`;
 
@@ -133,46 +217,40 @@
 
           const current = data.current;
           const currentIcon = getIconURL(current.condition.text);
+          setMusic(current.condition.text);
 
           currentDiv.innerHTML = `
             <div class="card">
               <h2>📍 ${data.location.name}, ${data.location.region}</h2>
-              <p><strong>Temp:</strong> ${current.temp_c}°C (${current.temp_f}°F)</p>
-              <p><strong>Condition:</strong> ${current.condition.text}</p>
-              <lottie-player src="${currentIcon}" background="transparent" speed="1" style="width: 120px; height: 120px;" autoplay loop></lottie-player>
+              <p><strong>Temperature:</strong> ${current.temp_c}°C</p>
+              <p class="condition">${current.condition.text}</p>
+              <lottie-player src="${currentIcon}" background="transparent" speed="1" style="width: 100px;" autoplay></lottie-player>
             </div>
           `;
 
-          weeklyDiv.innerHTML = '<h2>📆 7-Day Forecast</h2>';
+          weeklyDiv.innerHTML = '<h2>📅 7-Day Forecast</h2>';
           data.forecast.forecastday.forEach(day => {
-            const icon = getIconURL(day.day.condition.text);
             const dateStr = new Date(day.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-            const html = `
-              <div class="card day-forecast">
+            const iconURL = getIconURL(day.day.condition.text);
+            weeklyDiv.innerHTML += `
+              <div class="card">
                 <div class="date">${dateStr}</div>
                 <div class="condition">${day.day.condition.text}</div>
-                <div>🌡️ Min: ${day.day.mintemp_c}°C | Max: ${day.day.maxtemp_c}°C</div>
-                <lottie-player src="${icon}" background="transparent" speed="1" style="width: 100px; height: 100px;" autoplay loop></lottie-player>
+                <lottie-player src="${iconURL}" background="transparent" speed="1" style="width: 80px;" autoplay></lottie-player>
+                <div>🌡 Min: ${day.day.mintemp_c}°C | Max: ${day.day.maxtemp_c}°C</div>
               </div>
             `;
-            weeklyDiv.insertAdjacentHTML('beforeend', html);
           });
 
-          // Alerts
-          if (data.alerts && data.alerts.alert.length > 0) {
-            const severeAlerts = data.alerts.alert.filter(alert =>
-              /rain|storm|hail|thunder|snow|flood/i.test(alert.event)
-            );
-
-            if (severeAlerts.length > 0) {
-              const msg = severeAlerts[0].headline + '. Please stay safe.';
-              speakAlert(msg);
-              statusDiv.innerText = `⚠️ Alert: ${msg}`;
-              return;
-            }
+          const alerts = data.alerts?.alert || [];
+          const severe = alerts.find(a => /storm|rain|hail|flood|thunder|snow/i.test(a.event));
+          if (severe) {
+            const msg = `⚠️ Weather Alert: ${severe.event}. ${severe.headline}`;
+            speakAlert(msg);
+            statusDiv.innerText = msg;
+          } else {
+            statusDiv.innerText = '✅ No severe weather alerts currently.';
           }
-
-          statusDiv.innerText = '✅ No severe weather alerts currently.';
         })
         .catch(err => {
           statusDiv.innerText = 'Fetch error: ' + err.message;
@@ -180,19 +258,16 @@
         });
     }
 
-    function speakAlert(message) {
-      const utter = new SpeechSynthesisUtterance(message);
-      utter.lang = 'en-US';
-      speechSynthesis.speak(utter);
+    function toggleTheme() {
+      document.body.classList.toggle("night");
     }
 
-    // GPS Location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
-          statusDiv.innerText = "📍 Location detected. Fetching weather...";
+          statusDiv.innerText = "📍 Location detected. Fetching weather data...";
           getWeatherAndAlert(lat, lon);
           setInterval(() => getWeatherAndAlert(lat, lon), 5 * 60 * 1000); // every 5 mins
         },
@@ -201,7 +276,7 @@
         }
       );
     } else {
-      statusDiv.innerText = "❌ Geolocation not supported by this browser.";
+      statusDiv.innerText = "❌ Geolocation is not supported by this browser.";
     }
   </script>
 </body>
